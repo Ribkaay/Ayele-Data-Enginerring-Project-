@@ -8,14 +8,13 @@ Date: 10/14/2023
 import pyspark
 import pandas as pd 
 import random
-#import secret
+import secret
 import matplotlib.pyplot as plt
 
-from secret import mysql_username, mysql_password
 from pyspark.sql.functions import when,col, substring, concat,lit,initcap, lpad,substring, lower
 from pyspark.sql.types import IntegerType,StringType,TimestampType, DoubleType
-from pyspark.sql import SparkSession  #import sparksession from pyspark.sql
 
+from pyspark.sql import SparkSession  #import sparksession from pyspark.sql
 
 
 #Create a Spark session
@@ -142,8 +141,8 @@ cdw_sapp_branch.write.format("jdbc") \
   .option("dbtable", "df_cdw_sapp_branch") \
   .option("dbtable", "df_cdw_sapp_credit") \
   .option("dbtable", "df_cdw_sapp_custmer") \
-  .option("user", secret.mysql_username) \
-  .option("password", secret.mysql_password) \
+  .option("user", secret.My_username ) \
+  .option("password", secret.My_password) \
   .save()
 
 # # 1) Used to display the transactions made by customers living in a
