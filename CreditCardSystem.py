@@ -12,6 +12,10 @@ import pandas as pd
 import random
 import secret
 import matplotlib.pyplot as plt
+import mysql.connector
+from mysql.connector import Error
+
+
 
 from pyspark.sql.functions import when,col, substring, concat,lit,initcap, lpad,substring, lower
 from pyspark.sql.types import IntegerType,StringType,TimestampType, DoubleType
@@ -50,7 +54,9 @@ def extract_cdw_sapp_credit(spark):
   print(df_cdw_sapp_credit.show(5))
   return df_cdw_sapp_credit  #return extract file
   
-""" Transform cdw_sapp_custme file based on the mapping document according to the 
+"""  Functional Requirements - Load Credit Card Database (SQL)
+Req-1.1 Data Extraction and Transformation with Python and  PySpark
+Transform cdw_sapp_custme file based on the mapping document according to the 
 specifications found in the mapping document; 
 - """
 def transform_cdw_sapp_custmer (df_cdw_sapp_custmer):
@@ -104,28 +110,35 @@ def transform_cdw_sapp_custmer (df_cdw_sapp_custmer):
 """ Transform cdw_sapp_branch data frame based on the mapping document"""
 def transform_cdw_sapp_branch(df_cdw_sapp_branch):
 
-  df_cdw_sapp_branch.select("BRANCH_CODE","BRANCH_NAME","BRANCH_STREET","BRANCH_CITY",
-                            "BRANCH_STATE","BRANCH_ZIP","BRANCH_PHONE","LAST_UPDATED")
+  df_cdw_sapp_branch = df_cdw_sapp_branch.select("BRANCH_CODE","BRANCH_NAME","BRANCH_STREET","BRANCH_CITY","BRANCH_STATE",
+                                                 "BRANCH_ZIP","BRANCH_PHONE","LAST_UPDATED")
 
   #IF BRANCH_ZIP  value is null load default (99999) value 
   #Change the format of phone number to(xxx)xxx-xxx format
-  cdw_sapp_branch = df_cdw_sapp_branch.withColumn("BRANCH_ZIP", when(col("BRANCH_ZIP").isNull(),'99999').otherwise(col("BRANCH_ZIP"))
+  #Make sure BRANCH_ZIP  code 5 number
+
+  df_cdw_sapp_branch = df_cdw_sapp_branch.withColumn("BRANCH_ZIP", lpad(col("BRANCH_ZIP"),5,"0"))
+ 
+  df_cdw_sapp_branch = df_cdw_sapp_branch.withColumn("BRANCH_ZIP", when(col("BRANCH_ZIP").isNull(),'99999').otherwise(col("BRANCH_ZIP"))
                                   ).withColumn("BRANCH_PHONE",concat(lit('('),substring(col("BRANCH_PHONE"),1,3),lit(')'),
                                                                     substring(col("BRANCH_PHONE"),4,3),lit('-'),
-                                                                    substring(col("BRANCH_PHONE"),7,4)))
+                                                                    substring(col("BRANCH_PHONE"),7,4))
+                                 )
+
+  df_cdw_sapp_branch.show()
 
   #Conver into targeted data type except Branch code, zip code and last update convert all to stringtype
-  cdw_sapp_branch.withColumn("BRANCH_CODE", col("BRANCH_CODE").cast(IntegerType())
-                                ).withColumn('BRANCH_NAME', col('BRANCH_NAME').cast(StringType())
-                                  ).withColumn('BRANCH_STREET', col('BRANCH_STREET').cast(StringType())
-                                  ).withColumn('BRANCH_CITY', col('BRANCH_CITY').cast(StringType()) 
-                                  ).withColumn('BRANCH_STATE', col('BRANCH_STATE').cast(StringType())
-                                  ).withColumn('BRANCH_ZIP', col('BRANCH_ZIP').cast(IntegerType())
-                                  ).withColumn('BRANCH_PHONE', col('BRANCH_PHONE').cast(StringType())
-                                  ).withColumn("LAST_UPDATED", col('LAST_UPDATED').cast(TimestampType()))  
-
-
-  cdw_sapp_branch.show(5)
+ 
+  cdw_sapp_branch = df_cdw_sapp_branch.withColumn("BRANCH_CODE", col("BRANCH_CODE").cast(IntegerType())
+                                ).withColumn('BRANCH_NAME', col("BRANCH_NAME").cast(StringType())
+                                  ).withColumn('BRANCH_STREET', col("BRANCH_STREET").cast(StringType())
+                                  ).withColumn('BRANCH_CITY', col("BRANCH_CITY").cast(StringType()) 
+                                  ).withColumn('BRANCH_STATE', col("BRANCH_STATE").cast(StringType())
+                                  ).withColumn('BRANCH_ZIP', col("BRANCH_ZIP").cast(IntegerType())
+                                  ).withColumn('BRANCH_PHONE', col("BRANCH_PHONE").cast(StringType())
+                                  ).withColumn("LAST_UPDATED", col("LAST_UPDATED").cast(TimestampType()))  
+  cdw_sapp_branch.show()
+  cdw_sapp_branch.printSchema()
   return cdw_sapp_branch
 
 """Extract cdw_sapp_credit data frame"""
@@ -151,63 +164,74 @@ def transform_cdw_sapp_credit(df_cdw_sapp_credit):
   cdw_sapp_credit.show()
   return cdw_sapp_credit
 
+"""Req-1.2 Data loading into Database
+Function Requirement 1.2 Once PySpark reads data from JSON files, and then utilizes Python,
+PySpark, and Python modules to load data into RDBMS(SQL), perform thefollowing:
+a) Create a Database in SQL(MySQL), named “creditcard_capstone.”
+b) Create a Python and Pyspark Program to load/write the “Credit
+Card System Data” into RDBMS(creditcard_capstone).
+Tables should be created by the following names in RDBMS: CDW_SAPP_BRANCH,CDW_SAPP_CREDIT_CARD, CDW_SAPP_CUSTOMER"""
 
-# #Create a Database in SQL(MySQL), named “creditcard_capstone.”
+def db_connection():
+   
+    #spark = SparkSession.builder.master("local[*]").appName("creditcard_capstone").getOrCreate()
+    conn = None
+   
+    try:
+        conn = mysql.connector.connect(database='creditcard_capstone',
+                                             user = secret.mysql_username,
+                                             password = secret.mysql_password)
+        #  user=secret.mysql_password,
+        #                                      password=secret.mysql_password)
+        if conn.is_connected():
+            cursor = conn.cursor()
+            cursor.execute("CREATE DATABASE IF NOT EXISTS creditcard_capstone")
+             #Connect to MySQL database 
+            print('Connected to MySQL database')
 
-# #) Create a Python and Pyspark Program to load/write the “Credit card System Data” into RDBMS(creditcard_capstone).
-# # Tables should be created by the following names in RDBMS:
-# # CDW_SAPP_BRANCH
-# # CDW_SAPP_CREDIT_CARD
-# # CDW_SAPP_CUSTOMER
+    except Error as e:
+        print(e)
 
-# spark = SparkSession.builder.master("local[*]").appName("creditcard_capstone").getOrCreate()
+    finally:
+        if conn is not None and conn.is_connected():
+            conn.close()
 
-# # Write the spark DataFrame into creditcard_capstone database 
-# # Use Secret.py to create a connection with database url and credentials
-# #Add 3 tables 
-# df_cdw_sapp_branch.write.format("jdbc") \
-#   .mode("append") \
-#   .option("url", "jdbc:mysql://localhost:3306/creditcard_capstone") \
-#   .option("dbtable", "cdw_sapp_branch") \
-#   .option("dbtable", "cdw_sapp_credit") \
-#   .option("dbtable", "cdw_sapp_custmer") \
-#   .option("user", secret.mysql_username ) \
-#   .option("password", secret.mysql_password) \
-#   .save()
-
-# # # 1) Used to display the transactions made by customers living in a
-# # # given zip code for a given month and year. Order by day in
-# # # descending order.
-
-# # #def transaction()
-# # # Get zip_code, Month, year from the user
-# # zip_code = input("Please enter the Zip code: ")
-# # Month = input("Please enter the month: ")
-# # Year = input("Please enter the year")
-
-# # #Split the TIMEID in to Day, Month and Year before satrt the quary 
-# # df_cdw_sapp_credit.show(5)
-
-# # #use lpad function to for month and day because some of them put as one degit
-
-# # df_TIMEID = df_cdw_sapp_credit.withColumn("YEAR", substring(col("TIMEID"), 1,4).cast("VARCHAR(20)")
-# #                                           ).withColumn("MONTH", (substring(col("TIMEID"), 5,2).cast("VARCHAR(20)"))
-# #                                           ).withColumn("DAY", (substring(col("TIMEID"), 7,5).cast("VARCHAR(20)")))
+def load_to_mysql(dataframe,table_name):
+  #write a pyspark dataframe to MySQL table
+ table = dataframe.write.format("jdbc") \
+  .mode("append") \
+  .option("url", "jdbc:mysql://localhost:3306/creditcard_capstone") \
+  .option("dbtable", table_name) \
+  .option("user", secret.mysql_username) \
+  .option("password",secret.mysql_password) \
+  .save()
+ return table 
 
 
 
-# # df_TIMEID.show(5)
+   
+
 
 def main():
 
   spark = create_spark_session('Credit Card System')
-  df_cdw_sapp_custmer = extract_cdw_sapp_custmer(spark)
+  #Extract JSON 
+  # df_cdw_sapp_custmer = extract_cdw_sapp_custmer(spark)
   df_cdw_sapp_branch = extract_cdw_sapp_branch (spark)
-  df_cdw_sapp_credit= extract_cdw_sapp_credit(spark) 
-  transform_cdw_sapp_custmer (df_cdw_sapp_custmer)
-  transform_cdw_sapp_branch(df_cdw_sapp_branch)
-  transform_cdw_sapp_credit(df_cdw_sapp_credit)
-  
+  # df_cdw_sapp_credit= extract_cdw_sapp_credit(spark) 
 
+  #Transform to dataframe 
+  # cdw_sapp_custmer = transform_cdw_sapp_custmer (df_cdw_sapp_custmer)
+  cdw_sapp_branch= transform_cdw_sapp_branch(df_cdw_sapp_branch)
+  # cdw_sapp_credit = transform_cdw_sapp_credit(df_cdw_sapp_credit)
+
+  #Load to Database
+
+  db_connection()
+  
+  # cdw_sapp_custmer = load_to_mysql(cdw_sapp_custmer,"cdw_sapp_custmer")
+  cdw_sapp_branch = load_to_mysql(cdw_sapp_branch,"cdw_sapp_branch" )
+  # cdw_sapp_credit = load_to_mysql(cdw_sapp_credit, "cdw_sapp_credit")
 if __name__=="__main__":
   main()
+  
