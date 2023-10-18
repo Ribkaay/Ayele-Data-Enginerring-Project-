@@ -212,7 +212,7 @@ def load_to_mysql(dataframe,table_name):
 
 
 """ 4. Functional Requirements - LOAN Application Dataset  
- On this part of project I used  LOAN Application. First https://raw.githubusercontent.com/platformps/LoanDataset/main/loan_data.json 
+ On this part of project I used  LOAN Application dataset. First https://raw.githubusercontent.com/platformps/LoanDataset/main/loan_data.json 
  request acces from a REST API by sending an HTTP request and processing the response. After got the respond load it to pyspark and load it on database. 
  Finally create o analyze and visualize the data.
 """
