@@ -249,17 +249,6 @@ customer_transaction = f""" SELECT c.FIRST_NAME,c.LAST_NAME,c.CREDIT_CARD_NO,c.F
 result = spark.sql(customer_transaction)
 result.show(5)
 
-#2) Used to display the number and total values of transactions for a given type.
-type = input("Please enter a transactions type: ")
-
-#use count to get total number of transaction
-
-spark_sql= f""" SELECT COUNT(*) AS TRANSATION_TYPE, '{type}' FROM cdw_sapp_credit WHERE cdw_sapp_credit.TRANSACTION_TYPE = '{type}'"""
-
-result = spark.sql(spark_sql)    
-result.show() 
-
-
 """ Used to display the number and total values of transactions for a given type."""
 type = input("Please enter a transactions type(ex: Gas): ")
 
@@ -480,14 +469,14 @@ Functional Requirements 4.2 Find the status code of the above API endpoint. Hint
 Functional Requirements 4.3 Once Python reads data from the API, utilize PySpark to load data into
 RDBMS (SQL). The table name should be CDW-SAPP_loan_application in the database. Note: Use the “creditcard_capstone” database."""
 
-""" 4. Functional Requirements - LOAN Application Dataset  
- On this part of project I used  LOAN Application dataset. First https://raw.githubusercontent.com/platformps/LoanDataset/main/loan_data.json 
- request acces from a REST API by sending an HTTP request and processing the response. After got the respond load it to pyspark and load it on database. 
- Finally create o analyze and visualize the data.
-"""
 
 def Loan_Application_dataset():
     spark = SparkSession.builder.appName('Loan Application dataset').getOrCreate()
+
+    """ 4. Functional Requirements - LOAN Application Dataset  
+     On this part of project I used  LOAN Application dataset. First https://raw.githubusercontent.com/platformps/LoanDataset/main/loan_data.json 
+    request acces from a REST API by sending an HTTP request and processing the response. After got the respond load it to pyspark and load it on database. 
+    Finally create o analyze and visualize the data."""
 
     # Create a Python program to GET (consume) data from the above API
     # endpoint for the loan application dataset.
@@ -624,10 +613,3 @@ Top3_month_transaction()
 
 
 
-
-# def main():
-#   db_connection()  
-
-
-# if __name__=="__main__":
-#   main()
