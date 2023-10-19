@@ -610,6 +610,9 @@ def Top3_month_transaction():
       conn.close()
         
 Top3_month_transaction()
+def Top3_month_transaction():
 
-
-
+    conn = mysql.connector.connect(database='creditcard_capstone',
+                                user = secret.mysql_username,
+                               password = secret.mysql_password)
+    
